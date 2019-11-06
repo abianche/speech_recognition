@@ -3,8 +3,12 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/services.dart';
 
+import 'package:speech_recognition/speech_enum.dart';
+export 'package:speech_recognition/speech_enum.dart';
+
 typedef void AvailabilityHandler(bool result);
 typedef void StringResultHandler(String text);
+typedef void ErrorHandler(SpeechRecognitionError error);
 
 /// the channel to control the speech recognition
 class SpeechRecognition {
@@ -27,24 +31,26 @@ class SpeechRecognition {
   VoidCallback recognitionStartedHandler;
 
   StringResultHandler recognitionCompleteHandler;
-  
-  VoidCallback errorHandler;
+
+  ErrorHandler errorHandler;
 
   /// ask for speech  recognizer permission
-  Future activate() => _channel.invokeMethod("speech.activate");
+  Future<bool> activate() => _channel.invokeMethod("speech.activate");
 
   /// start listening
-  Future listen({String locale}) =>
+  Future<bool> listen({String locale}) =>
       _channel.invokeMethod("speech.listen", locale);
 
   /// cancel speech
-  Future cancel() => _channel.invokeMethod("speech.cancel");
-  
+  Future<bool> cancel() => _channel.invokeMethod("speech.cancel");
+
   /// stop listening
-  Future stop() => _channel.invokeMethod("speech.stop");
+  Future<bool> stop() => _channel.invokeMethod("speech.stop");
 
   Future _platformCallHandler(MethodCall call) async {
-    print("_platformCallHandler call ${call.method} ${call.arguments}");
+    print("Method channel [${call.method}]");
+    if (call.arguments != null) print("with arguments [${call.arguments}]");
+
     switch (call.method) {
       case "speech.onSpeechAvailability":
         availabilityHandler(call.arguments);
@@ -62,7 +68,7 @@ class SpeechRecognition {
         recognitionCompleteHandler(call.arguments);
         break;
       case "speech.onError":
-        errorHandler();
+        errorHandler(SpeechRecognitionError.fromInt(call.arguments));
         break;
       default:
         print('Unknowm method ${call.method} ');
@@ -87,6 +93,6 @@ class SpeechRecognition {
 
   void setCurrentLocaleHandler(StringResultHandler handler) =>
       currentLocaleHandler = handler;
-  
-  void setErrorHandler(VoidCallback handler) => errorHandler = handler;
+
+  void setErrorHandler(ErrorHandler handler) => errorHandler = handler;
 }
