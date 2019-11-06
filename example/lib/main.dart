@@ -6,11 +6,8 @@ void main() {
 }
 
 const languages = const [
-  const Language('Francais', 'fr_FR'),
   const Language('English', 'en_US'),
-  const Language('Pусский', 'ru_RU'),
-  const Language('Italiano', 'it_IT'),
-  const Language('Español', 'es_ES'),
+  const Language('German', 'de_DE'),
 ];
 
 class Language {
@@ -44,7 +41,7 @@ class _MyAppState extends State<MyApp> {
 
   // Platform messages are asynchronous, so we initialize in an async method.
   void activateSpeechRecognizer() {
-    print('_MyAppState.activateSpeechRecognizer... ');
+    print('Activating recognition ...');
     _speech = new SpeechRecognition();
     _speech.setAvailabilityHandler(onSpeechAvailability);
     _speech.setCurrentLocaleHandler(onCurrentLocale);
@@ -52,9 +49,10 @@ class _MyAppState extends State<MyApp> {
     _speech.setRecognitionResultHandler(onRecognitionResult);
     _speech.setRecognitionCompleteHandler(onRecognitionComplete);
     _speech.setErrorHandler(errorHandler);
-    _speech
-        .activate()
-        .then((res) => setState(() => _speechRecognitionAvailable = res));
+    _speech.activate().then((activated) => setState(() {
+          print('Activating recognition is $activated');
+          _speechRecognitionAvailable = activated;
+        }));
   }
 
   @override
@@ -62,7 +60,8 @@ class _MyAppState extends State<MyApp> {
     return new MaterialApp(
       home: new Scaffold(
         appBar: new AppBar(
-          title: new Text('SpeechRecognition'),
+          title: new Text('SpeechRecognition (demo)'),
+          backgroundColor: Colors.black,
           actions: [
             new PopupMenuButton<Language>(
               onSelected: _selectLangHandler,
@@ -81,7 +80,10 @@ class _MyAppState extends State<MyApp> {
                       child: new Container(
                           padding: const EdgeInsets.all(8.0),
                           color: Colors.grey.shade200,
-                          child: new Text(transcription))),
+                          child: new Text(
+                            transcription,
+                            textScaleFactor: 4.0,
+                          ))),
                   _buildButton(
                     onPressed: _speechRecognitionAvailable && !_isListening
                         ? () => start()
@@ -92,9 +94,11 @@ class _MyAppState extends State<MyApp> {
                   ),
                   _buildButton(
                     onPressed: _isListening ? () => cancel() : null,
+                    //onPressed: () => cancel(),
                     label: 'Cancel',
                   ),
                   _buildButton(
+                    // onPressed: () => stop(),
                     onPressed: _isListening ? () => stop() : null,
                     label: 'Stop',
                   ),
@@ -120,7 +124,7 @@ class _MyAppState extends State<MyApp> {
   Widget _buildButton({String label, VoidCallback onPressed}) => new Padding(
       padding: new EdgeInsets.all(12.0),
       child: new RaisedButton(
-        color: Colors.cyan.shade600,
+        color: Colors.black,
         onPressed: onPressed,
         child: new Text(
           label,
@@ -128,31 +132,59 @@ class _MyAppState extends State<MyApp> {
         ),
       ));
 
-  void start() => _speech
-      .listen(locale: selectedLang.code)
-      .then((result) => print('_MyAppState.start => result $result'));
+  // void start() => _speech
+  //     .listen(locale: selectedLang.code)
+  //     .then((result) => print('_MyAppState.start => result $result'));
 
-  void cancel() =>
-      _speech.cancel().then((result) => setState(() => _isListening = result));
+  // void start() => _speech.listen(locale: selectedLang.code).then(
+  //     (startedSuccessfully) => print(
+  //         'Start recognition with language ${selectedLang.code} is $startedSuccessfully'));
 
-  void stop() => _speech.stop().then((result) {
-        setState(() => _isListening = result);
-      });
+  void start() async {
+    bool started = await _speech.listen(locale: selectedLang.code);
+    print('Start recognition with language ${selectedLang.code} is $started');
+  }
 
-  void onSpeechAvailability(bool result) =>
-      setState(() => _speechRecognitionAvailable = result);
+  void cancel() async {
+    bool wasCancelled = await _speech.cancel();
+    print("Was cancelled: $wasCancelled");
+    setState(() => _isListening = false);
+  }
+
+  void stop() async {
+    bool wasRunning = await _speech.stop();
+    print("Was running: $wasRunning");
+    setState(() => _isListening = false);
+  }
+
+  void onSpeechAvailability(bool result) {
+    print("Speech available: $result");
+    setState(() => _speechRecognitionAvailable = result);
+  }
 
   void onCurrentLocale(String locale) {
-    print('_MyAppState.onCurrentLocale... $locale');
+    print('Authorized, with locale $locale');
     setState(
         () => selectedLang = languages.firstWhere((l) => l.code == locale));
   }
 
-  void onRecognitionStarted() => setState(() => _isListening = true);
+  void onRecognitionStarted() {
+    print("Started");
+    setState(() => _isListening = true);
+  }
 
-  void onRecognitionResult(String text) => setState(() => transcription = text);
+  void onRecognitionResult(String text) {
+    print("Partial result: $text");
+    setState(() => transcription = text);
+  }
 
-  void onRecognitionComplete() => setState(() => _isListening = false);
+  void onRecognitionComplete(String text) {
+    print("Final result: $text");
+    setState(() => _isListening = false);
+  }
 
-  void errorHandler() => activateSpeechRecognizer();
+  void errorHandler(SpeechRecognitionError error) {
+    print("Error: ${error.toString()}");
+    activateSpeechRecognizer();
+  }
 }
