@@ -48,8 +48,7 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
         speech.setRecognitionListener(this);
 
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
     }
@@ -57,48 +56,50 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
     @Override
     public void onMethodCall(MethodCall call, Result result) {
         switch (call.method) {
-            case "speech.activate":
-                // FIXME => Dummy activation verification : we assume that speech recognition permission
-                // is declared in the manifest and accepted during installation ( AndroidSDK 21- )
-                Configuration config = activity.getResources().getConfiguration();
-                Locale locale;
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                    locale = config.getLocales().get(0);
-                } else {
-                    locale = config.locale;
-                }
-                Log.d(LOG_TAG, "Current Locale : " + locale.toString());
-                speechChannel.invokeMethod("speech.onCurrentLocale", locale.toString());
-                result.success(true);
-                break;
-            case "speech.listen":
-                Log.d(LOG_TAG, "Listen Start, Language is "+call.arguments.toString());
-                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, call.arguments.toString());
-                speech.startListening(recognizerIntent);
-                result.success(true);
-                break;
-            case "speech.cancel":
-                speech.cancel();
-                result.success(false);
-                break;
-            case "speech.stop":
-                speech.stopListening();
-                result.success(true);
-                break;
-            case "speech.destroy":
-                speech.cancel();
-                speech.destroy();
-                result.success(true);
-                break;
-            default:
-                result.notImplemented();
-                break;
+        case "speech.activate":
+            // FIXME => Dummy activation verification : we assume that speech recognition
+            // permission
+            // is declared in the manifest and accepted during installation ( AndroidSDK 21-
+            // )
+            Configuration config = activity.getResources().getConfiguration();
+            Locale locale;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                locale = config.getLocales().get(0);
+            } else {
+                locale = config.locale;
+            }
+            Log.d(LOG_TAG, "Current Locale : " + locale.toString());
+            speechChannel.invokeMethod("speech.onCurrentLocale", locale.toString());
+            result.success(true);
+            break;
+        case "speech.listen":
+            Log.d(LOG_TAG, "Listen Start, Language is " + call.arguments.toString());
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, call.arguments.toString());
+            speech.startListening(recognizerIntent);
+            result.success(true);
+            break;
+        case "speech.cancel":
+            speech.cancel();
+            result.success(false);
+            break;
+        case "speech.stop":
+            speech.stopListening();
+            result.success(true);
+            break;
+        case "speech.destroy":
+            speech.cancel();
+            speech.destroy();
+            result.success(true);
+            break;
+        default:
+            result.notImplemented();
+            break;
         }
     }
 
     // private Locale getLocale(String code) {
-    //     String[] localeParts = code.split("_");
-    //     return new Locale(localeParts[0], localeParts[1]);
+    // String[] localeParts = code.split("_");
+    // return new Locale(localeParts[0], localeParts[1]);
     // }
 
     @Override
@@ -127,7 +128,8 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
     @Override
     public void onEndOfSpeech() {
         Log.d(LOG_TAG, "onEndOfSpeech");
-        speechChannel.invokeMethod("speech.onRecognitionComplete", transcription);
+        // SEE: https://github.com/rxlabz/speech_recognition/issues/12
+        // speechChannel.invokeMethod("speech.onRecognitionComplete", transcription);
     }
 
     @Override
@@ -140,8 +142,7 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
     @Override
     public void onPartialResults(Bundle partialResults) {
         Log.d(LOG_TAG, "onPartialResults...");
-        ArrayList<String> matches = partialResults
-                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (matches != null) {
             transcription = matches.get(0);
         }
@@ -156,8 +157,7 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
     @Override
     public void onResults(Bundle results) {
         Log.d(LOG_TAG, "onResults...");
-        ArrayList<String> matches = results
-                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (matches != null) {
             transcription = matches.get(0);
             Log.d(LOG_TAG, "onResults -> " + transcription);
