@@ -2,11 +2,13 @@ package bz.rxla.flutter.speechrecognition;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
+
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -58,13 +60,20 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
             case "speech.activate":
                 // FIXME => Dummy activation verification : we assume that speech recognition permission
                 // is declared in the manifest and accepted during installation ( AndroidSDK 21- )
-                Locale locale = activity.getResources().getConfiguration().locale;
+                Configuration config = activity.getResources().getConfiguration();
+                Locale locale;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    locale = config.getLocales().get(0);
+                } else {
+                    locale = config.locale;
+                }
                 Log.d(LOG_TAG, "Current Locale : " + locale.toString());
                 speechChannel.invokeMethod("speech.onCurrentLocale", locale.toString());
                 result.success(true);
                 break;
             case "speech.listen":
-                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, getLocale(call.arguments.toString()));
+                Log.d(LOG_TAG, "Listen Start, Language is "+call.arguments.toString());
+                recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, call.arguments.toString());
                 speech.startListening(recognizerIntent);
                 result.success(true);
                 break;
@@ -87,10 +96,10 @@ public class SpeechRecognitionPlugin implements MethodCallHandler, RecognitionLi
         }
     }
 
-    private Locale getLocale(String code) {
-        String[] localeParts = code.split("_");
-        return new Locale(localeParts[0], localeParts[1]);
-    }
+    // private Locale getLocale(String code) {
+    //     String[] localeParts = code.split("_");
+    //     return new Locale(localeParts[0], localeParts[1]);
+    // }
 
     @Override
     public void onReadyForSpeech(Bundle params) {
